@@ -1,0 +1,229 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider  = "postgresql"
+  url       = env("DATABASE_URL")
+  directUrl = env("DIRECT_URL")
+}
+
+enum Role {
+  ADMIN
+  MANAGER
+  EXECUTOR
+}
+
+enum TaskStatus {
+  NEW
+  IN_PROGRESS
+  SUBMITTED
+  RETURNED
+  DONE
+  CANCELLED
+}
+
+enum Priority {
+  LOW
+  MEDIUM
+  HIGH
+  URGENT
+}
+
+enum NotificationType {
+  TASK_ASSIGNED
+  TASK_SUBMITTED
+  TASK_RETURNED
+  TASK_ACCEPTED
+  TASK_COMMENT
+  DEADLINE_CHANGED
+  DEADLINE_SOON
+  TASK_OVERDUE
+}
+
+/// Hududiy kengash / tashkilot (Respublika Kengashi ham shu jadvalda, parentId = null)
+model Organization {
+  id          String         @id @default(cuid())
+  name        String
+  shortName   String?
+  region      String?
+  parentId    String?
+  parent      Organization?  @relation("OrgTree", fields: [parentId], references: [id])
+  children    Organization[] @relation("OrgTree")
+  departments Department[]
+  users       User[]
+  isActive    Boolean        @default(true)
+  createdAt   DateTime       @default(now())
+  updatedAt   DateTime       @updatedAt
+}
+
+model Department {
+  id             String       @id @default(cuid())
+  name           String
+  organizationId String
+  organization   Organization @relation(fields: [organizationId], references: [id])
+  headId         String?      @unique
+  head           User?        @relation("DepartmentHead", fields: [headId], references: [id])
+  members        User[]       @relation("DepartmentMembers")
+  isActive       Boolean      @default(true)
+  createdAt      DateTime     @default(now())
+  updatedAt      DateTime     @updatedAt
+
+  @@unique([organizationId, name])
+}
+
+model User {
+  id                 String        @id @default(cuid())
+  username           String        @unique
+  passwordHash       String
+  fullName           String
+  position           String?
+  phone              String?
+  email              String?
+  role               Role          @default(EXECUTOR)
+  organizationId     String?
+  organization       Organization? @relation(fields: [organizationId], references: [id])
+  departmentId       String?
+  department         Department?   @relation("DepartmentMembers", fields: [departmentId], references: [id])
+  headOf             Department?   @relation("DepartmentHead")
+  isActive           Boolean       @default(true)
+  mustChangePassword Boolean       @default(true)
+  failedLoginCount   Int           @default(0)
+  lockedUntil        DateTime?
+  lastLoginAt        DateTime?
+  createdAt          DateTime      @default(now())
+  updatedAt          DateTime      @updatedAt
+
+  createdTasks   Task[]         @relation("TaskCreator")
+  assignments    TaskAssignee[]
+  comments       TaskComment[]
+  attachments    Attachment[]
+  history        TaskHistory[]
+  notifications  Notification[]
+  auditLogs      AuditLog[]
+
+  @@index([role])
+  @@index([departmentId])
+}
+
+model Task {
+  id            String     @id @default(cuid())
+  number        Int        @unique @default(autoincrement()) /// Ko'rinadigan raqam: T-000123
+  title         String
+  description   String     @db.Text
+  priority      Priority   @default(MEDIUM)
+  status        TaskStatus @default(NEW)
+  deadline      DateTime
+  completedAt   DateTime?
+  createdById   String
+  createdBy     User       @relation("TaskCreator", fields: [createdById], references: [id])
+  departmentId  String?    /// Qaysi bo'lim doirasida berilgan (hisobot uchun)
+  parentTaskId  String?
+  parentTask    Task?      @relation("SubTasks", fields: [parentTaskId], references: [id])
+  subTasks      Task[]     @relation("SubTasks")
+  isDeleted     Boolean    @default(false) /// Soft delete
+  createdAt     DateTime   @default(now())
+  updatedAt     DateTime   @updatedAt
+
+  assignees   TaskAssignee[]
+  comments    TaskComment[]
+  attachments Attachment[]
+  history     TaskHistory[]
+
+  @@index([status, deadline])
+  @@index([createdById])
+  @@index([departmentId])
+}
+
+model TaskAssignee {
+  id          String     @id @default(cuid())
+  taskId      String
+  task        Task       @relation(fields: [taskId], references: [id], onDelete: Cascade)
+  userId      String
+  user        User       @relation(fields: [userId], references: [id])
+  status      TaskStatus @default(NEW)
+  openedAt    DateTime?
+  submittedAt DateTime?
+  acceptedAt  DateTime?
+  createdAt   DateTime   @default(now())
+  updatedAt   DateTime   @updatedAt
+
+  @@unique([taskId, userId])
+  @@index([userId, status])
+}
+
+model TaskComment {
+  id        String       @id @default(cuid())
+  taskId    String
+  task      Task         @relation(fields: [taskId], references: [id], onDelete: Cascade)
+  authorId  String
+  author    User         @relation(fields: [authorId], references: [id])
+  body      String       @db.Text
+  attachments Attachment[]
+  createdAt DateTime     @default(now())
+
+  @@index([taskId, createdAt])
+}
+
+model Attachment {
+  id           String       @id @default(cuid())
+  taskId       String
+  task         Task         @relation(fields: [taskId], references: [id], onDelete: Cascade)
+  commentId    String?
+  comment      TaskComment? @relation(fields: [commentId], references: [id])
+  uploadedById String
+  uploadedBy   User         @relation(fields: [uploadedById], references: [id])
+  fileName     String
+  mimeType     String
+  sizeBytes    Int
+  storageKey   String       /// Storage adapterdagi kalit (URL emas!)
+  isResult     Boolean      @default(false) /// Ijro natijasi sifatida yuklanganmi
+  createdAt    DateTime     @default(now())
+
+  @@index([taskId])
+}
+
+model TaskHistory {
+  id        String   @id @default(cuid())
+  taskId    String
+  task      Task     @relation(fields: [taskId], references: [id], onDelete: Cascade)
+  actorId   String
+  actor     User     @relation(fields: [actorId], references: [id])
+  action    String   /// CREATED, STATUS_CHANGED, DEADLINE_CHANGED, ASSIGNEE_ADDED, ...
+  oldValue  Json?
+  newValue  Json?
+  reason    String?
+  createdAt DateTime @default(now())
+
+  @@index([taskId, createdAt])
+}
+
+model Notification {
+  id        String           @id @default(cuid())
+  userId    String
+  user      User             @relation(fields: [userId], references: [id], onDelete: Cascade)
+  type      NotificationType
+  title     String
+  taskId    String?
+  isRead    Boolean          @default(false)
+  createdAt DateTime         @default(now())
+
+  @@index([userId, isRead])
+}
+
+/// Butun tizim bo'yicha audit (admin panelda ko'rinadi)
+model AuditLog {
+  id        String   @id @default(cuid())
+  actorId   String?
+  actor     User?    @relation(fields: [actorId], references: [id])
+  action    String   /// LOGIN_SUCCESS, LOGIN_FAILED, USER_CREATED, PASSWORD_RESET, TASK_DELETED, ...
+  entity    String?  /// User, Task, Department ...
+  entityId  String?
+  meta      Json?
+  ip        String?
+  userAgent String?
+  createdAt DateTime @default(now())
+
+  @@index([createdAt])
+  @@index([actorId])
+}
