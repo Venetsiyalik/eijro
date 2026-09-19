@@ -7,6 +7,8 @@ import type { Role } from "@prisma/client";
  * middleware Edge runtime'da ishlaydi.
  */
 export const authConfig = {
+  // Vercel/Nginx orqasida Host sarlavhasi platformadan keladi; AUTH_TRUST_HOST'ni qo'lda berish shart bo'lmasin.
+  trustHost: true,
   pages: {
     signIn: "/login",
   },
