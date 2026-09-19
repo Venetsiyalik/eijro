@@ -62,3 +62,8 @@ export function canViewTask(
 export function canManageTaskAsOwner(user: CurrentUser, task: { createdById: string }): boolean {
   return isAdmin(user) || task.createdById === user.id;
 }
+
+// §7: hisobotlar — ADMIN hammasini, MANAGER o'z bo'limini ko'radi; EXECUTOR ko'rmaydi.
+export function canViewReports(user: CurrentUser): boolean {
+  return isAdmin(user) || isManager(user);
+}

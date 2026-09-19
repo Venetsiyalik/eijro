@@ -1,12 +1,10 @@
 import { requireUser } from "@/lib/current-user";
+import { ExecutorDashboard } from "@/components/dashboard/executor-dashboard";
+import { ManagementDashboard } from "@/components/dashboard/management-dashboard";
 
 export default async function DashboardPage() {
   const user = await requireUser();
 
-  return (
-    <div>
-      <h1 className="text-2xl font-semibold">Xush kelibsiz, {user.fullName}</h1>
-      <p className="text-muted-foreground mt-1">Dashboard keyingi bosqichda to&apos;ldiriladi.</p>
-    </div>
-  );
+  if (user.role === "EXECUTOR") return <ExecutorDashboard user={user} />;
+  return <ManagementDashboard user={user} />;
 }

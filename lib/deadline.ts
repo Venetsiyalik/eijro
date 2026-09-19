@@ -23,6 +23,19 @@ export function getDeadlineState(task: DeadlineInput, now: Date = new Date()): D
   return hoursLeft <= DUE_SOON_HOURS ? "DUE_SOON" : "ON_TRACK";
 }
 
+/**
+ * §5: "Kechikish submittedAt bo'yicha hisoblanadi (qabul qilish kechiksa ijrochi aybdor bo'lmaydi)".
+ * Topshiriq darajasida eng oxirgi ijrochining topshirgan vaqti olinadi; bo'lmasa completedAt.
+ */
+export function effectiveCompletedAt(task: {
+  completedAt: Date | null;
+  assignees: { submittedAt: Date | null }[];
+}): Date | null {
+  const times = task.assignees.flatMap((a) => (a.submittedAt ? [a.submittedAt.getTime()] : []));
+  if (times.length === 0) return task.completedAt;
+  return new Date(Math.max(...times));
+}
+
 export function getOverdueDays(deadline: Date, now: Date = new Date()): number {
   return Math.max(0, Math.floor((now.getTime() - deadline.getTime()) / (1000 * 60 * 60 * 24)));
 }

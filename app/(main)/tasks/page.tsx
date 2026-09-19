@@ -6,6 +6,7 @@ import { requireUser } from "@/lib/current-user";
 import { canCreateTask, isAdmin, isManager, taskVisibilityWhere } from "@/lib/permissions";
 import {
   compareByDeadlineState,
+  effectiveCompletedAt,
   DEADLINE_BADGE_CLASSES,
   DEADLINE_ROW_CLASSES,
   getDeadlineLabel,
@@ -76,7 +77,9 @@ export default async function TasksPage({
   const departmentNameById = new Map(allDepartments.map((d) => [d.id, d.name]));
 
   const now = new Date();
-  const sorted = [...allTasks].sort((a, b) => compareByDeadlineState(a, b, now));
+  const sorted = allTasks
+    .map((t) => ({ ...t, completedAt: effectiveCompletedAt(t) }))
+    .sort((a, b) => compareByDeadlineState(a, b, now));
 
   const page = Math.max(1, parseInt(params.page ?? "1", 10) || 1);
   const totalPages = Math.max(1, Math.ceil(sorted.length / PAGE_SIZE));

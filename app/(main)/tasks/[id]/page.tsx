@@ -5,6 +5,7 @@ import { canManageTaskAsOwner, canViewTask } from "@/lib/permissions";
 import { ensureTaskOpened } from "@/actions/tasks";
 import {
   DEADLINE_BADGE_CLASSES,
+  effectiveCompletedAt,
   getDeadlineLabel,
   getDeadlineState,
 } from "@/lib/deadline";
@@ -56,7 +57,8 @@ export default async function TaskDetailPage({ params }: { params: Promise<{ id:
     : null;
 
   const now = new Date();
-  const state = getDeadlineState(task, now);
+  const deadlineTask = { ...task, completedAt: effectiveCompletedAt(task) };
+  const state = getDeadlineState(deadlineTask, now);
 
   const myAssignee = task.assignees.find((a) => a.userId === user.id);
   const isOwnerOrAdmin = canManageTaskAsOwner(user, task);
@@ -72,7 +74,7 @@ export default async function TaskDetailPage({ params }: { params: Promise<{ id:
       <div className="flex flex-wrap items-center gap-2">
         <Badge variant="outline">{PRIORITY_LABELS[task.priority]}</Badge>
         <Badge variant="secondary">{STATUS_LABELS[task.status]}</Badge>
-        <Badge className={cn("border", DEADLINE_BADGE_CLASSES[state])}>{getDeadlineLabel(task, now)}</Badge>
+        <Badge className={cn("border", DEADLINE_BADGE_CLASSES[state])}>{getDeadlineLabel(deadlineTask, now)}</Badge>
         {canCancel && (
           <div className="ml-auto">
             <CancelTaskButton taskId={task.id} />

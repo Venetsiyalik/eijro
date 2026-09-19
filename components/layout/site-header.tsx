@@ -26,6 +26,11 @@ export function SiteHeader({
             <Link href="/tasks" className="text-muted-foreground hover:text-foreground">
               Topshiriqlar
             </Link>
+            {role !== "EXECUTOR" && (
+              <Link href="/reports" className="text-muted-foreground hover:text-foreground">
+                Hisobotlar
+              </Link>
+            )}
           </nav>
         </div>
         <div className="flex items-center gap-3">

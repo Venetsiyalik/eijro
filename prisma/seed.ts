@@ -317,7 +317,8 @@ async function main() {
           userId: a.userId,
           status: a.status,
           openedAt: a.status !== "NEW" ? task.createdAt : null,
-          submittedAt: ["SUBMITTED", "RETURNED", "DONE"].includes(a.status) ? task.createdAt : null,
+          submittedAt:
+            a.status === "DONE" ? spec.completedAt : ["SUBMITTED", "RETURNED"].includes(a.status) ? task.createdAt : null,
           acceptedAt: a.status === "DONE" ? spec.completedAt : null,
         },
       });

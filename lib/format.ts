@@ -1,5 +1,6 @@
 import { uz } from "date-fns/locale";
-import { formatInTimeZone } from "date-fns-tz";
+import { endOfDay, endOfWeek } from "date-fns";
+import { formatInTimeZone, fromZonedTime, toZonedTime } from "date-fns-tz";
 
 const TZ = "Asia/Tashkent";
 
@@ -9,4 +10,13 @@ export function formatDateTime(date: Date): string {
 
 export function formatDate(date: Date): string {
   return formatInTimeZone(date, TZ, "d MMMM yyyy", { locale: uz });
+}
+
+/** "Bugun" va "shu hafta" chegaralari Toshkent vaqti bo'yicha (hafta dushanbadan boshlanadi). */
+export function getTashkentRanges(now: Date = new Date()): { endOfToday: Date; endOfWeek: Date } {
+  const zoned = toZonedTime(now, TZ);
+  return {
+    endOfToday: fromZonedTime(endOfDay(zoned), TZ),
+    endOfWeek: fromZonedTime(endOfWeek(zoned, { weekStartsOn: 1 }), TZ),
+  };
 }
