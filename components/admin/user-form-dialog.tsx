@@ -90,7 +90,7 @@ export function UserFormDialog({
           </Button>
         )}
       </DialogTrigger>
-      <DialogContent>
+      <DialogContent className="max-h-[90vh] overflow-y-auto">
         {state.success && state.tempPassword ? (
           <>
             <DialogHeader>
@@ -112,7 +112,7 @@ export function UserFormDialog({
             </DialogHeader>
             <form action={formAction} className="space-y-4">
               {mode === "edit" && user && <input type="hidden" name="id" value={user.id} />}
-              <div className="grid grid-cols-2 gap-4">
+              <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
                 <div className="space-y-2">
                   <Label htmlFor="username">Login</Label>
                   <Input id="username" name="username" defaultValue={user?.username} required />
@@ -122,7 +122,7 @@ export function UserFormDialog({
                   <Input id="fullName" name="fullName" defaultValue={user?.fullName} required />
                 </div>
               </div>
-              <div className="grid grid-cols-2 gap-4">
+              <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
                 <div className="space-y-2">
                   <Label htmlFor="position">Lavozimi</Label>
                   <Input id="position" name="position" defaultValue={user?.position ?? ""} />
@@ -143,7 +143,7 @@ export function UserFormDialog({
                   </Select>
                 </div>
               </div>
-              <div className="grid grid-cols-2 gap-4">
+              <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
                 <div className="space-y-2">
                   <Label htmlFor="phone">Telefon</Label>
                   <Input id="phone" name="phone" defaultValue={user?.phone ?? ""} />
@@ -153,7 +153,7 @@ export function UserFormDialog({
                   <Input id="email" name="email" type="email" defaultValue={user?.email ?? ""} />
                 </div>
               </div>
-              <div className="grid grid-cols-2 gap-4">
+              <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
                 <div className="space-y-2">
                   <Label htmlFor="organizationId">Tashkilot</Label>
                   <Select

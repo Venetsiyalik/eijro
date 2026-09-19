@@ -59,7 +59,7 @@ export function TaskEditForm({
         <Textarea id="description" name="description" rows={4} defaultValue={task.description} required />
       </div>
 
-      <div className="grid grid-cols-2 gap-4">
+      <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
         <div className="space-y-2">
           <Label htmlFor="priority">Ustuvorlik</Label>
           <Select name="priority" defaultValue={task.priority}>

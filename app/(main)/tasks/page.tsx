@@ -1,3 +1,4 @@
+import { Suspense } from "react";
 import Link from "next/link";
 import { Plus } from "lucide-react";
 import type { Prisma, Priority, TaskStatus } from "@prisma/client";
@@ -28,11 +29,12 @@ import {
 } from "@/components/ui/pagination";
 import { TaskFilters } from "@/components/tasks/task-filters";
 import { cn } from "@/lib/utils";
+import { PageSkeleton } from "@/components/layout/page-skeleton";
 
 const PAGE_SIZE = 20;
 const OPEN_DEADLINE_FILTERS = new Set(["OVERDUE", "DUE_SOON", "ON_TRACK"]);
 
-export default async function TasksPage({
+async function TasksContent({
   searchParams,
 }: {
   searchParams: Promise<Record<string, string | undefined>>;
@@ -184,5 +186,14 @@ export default async function TasksPage({
         </Pagination>
       )}
     </div>
+  );
+}
+
+// Skelet Suspense bilan (segment loading.tsx emas): HTTP status o'zgarmasligi uchun.
+export default function TasksPage({ searchParams }: { searchParams: Promise<Record<string, string | undefined>> }) {
+  return (
+    <Suspense fallback={<PageSkeleton />}>
+      <TasksContent searchParams={searchParams} />
+    </Suspense>
   );
 }
