@@ -1,4 +1,5 @@
 import { z } from "zod";
+import { parseTashkentLocal } from "@/lib/format";
 
 const optionalString = z
   .string()
@@ -12,8 +13,8 @@ export const taskSchema = z.object({
   deadline: z
     .string()
     .min(1, "Muddat kiritilishi shart")
-    .refine((v) => !Number.isNaN(Date.parse(v)), "Muddat noto'g'ri")
-    .refine((v) => new Date(v).getTime() > Date.now(), "Muddat o'tmishda bo'lmasligi kerak"),
+    .refine((v) => !Number.isNaN(parseTashkentLocal(v).getTime()), "Muddat noto'g'ri")
+    .refine((v) => parseTashkentLocal(v).getTime() > Date.now(), "Muddat o'tmishda bo'lmasligi kerak"),
   departmentId: optionalString,
   assigneeIds: z.array(z.string().min(1)).min(1, "Kamida bitta ijrochi tanlang"),
 });
@@ -38,4 +39,20 @@ export const cancelTaskSchema = z.object({
 
 export const commentSchema = z.object({
   body: z.string().min(1, "Izoh bo'sh bo'lishi mumkin emas"),
+});
+
+export const updateTaskSchema = z.object({
+  title: z.string().min(3, "Sarlavha kamida 3 belgidan iborat bo'lishi kerak"),
+  description: z.string().min(3, "Tavsif kiritilishi shart"),
+  priority: z.enum(["LOW", "MEDIUM", "HIGH", "URGENT"]),
+  deadline: z
+    .string()
+    .min(1, "Muddat kiritilishi shart")
+    .refine((v) => !Number.isNaN(parseTashkentLocal(v).getTime()), "Muddat noto'g'ri"),
+  reason: optionalString,
+  assigneeIds: z.array(z.string().min(1)),
+});
+
+export const deleteTaskSchema = z.object({
+  reason: optionalString,
 });

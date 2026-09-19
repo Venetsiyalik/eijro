@@ -1,7 +1,9 @@
+import Link from "next/link";
+import { Pencil } from "lucide-react";
 import { notFound, forbidden } from "next/navigation";
 import { db } from "@/lib/db";
 import { requireUser } from "@/lib/current-user";
-import { canManageTaskAsOwner, canViewTask } from "@/lib/permissions";
+import { canManageTaskAsOwner, canViewTask, isAdmin } from "@/lib/permissions";
 import { ensureTaskOpened } from "@/actions/tasks";
 import {
   DEADLINE_BADGE_CLASSES,
@@ -11,7 +13,7 @@ import {
 } from "@/lib/deadline";
 import { PRIORITY_LABELS, ROLE_LABELS, STATUS_LABELS } from "@/lib/labels";
 import { formatDateTime } from "@/lib/format";
-import { historyActionLabel } from "@/lib/history-labels";
+import { historyActionLabel, historyDetail } from "@/lib/history-labels";
 import { formatFileSize } from "@/lib/files";
 import { Badge } from "@/components/ui/badge";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
@@ -22,6 +24,8 @@ import { AcceptButton, ReturnButton } from "@/components/tasks/accept-return-but
 import { CancelTaskButton } from "@/components/tasks/cancel-task-button";
 import { CommentForm } from "@/components/tasks/comment-form";
 import { FileUploadForm } from "@/components/tasks/file-upload-form";
+import { DeleteTaskButton, RestoreTaskButton } from "@/components/admin/task-delete-restore";
+import { Button } from "@/components/ui/button";
 
 export default async function TaskDetailPage({ params }: { params: Promise<{ id: string }> }) {
   const { id } = await params;
@@ -31,12 +35,12 @@ export default async function TaskDetailPage({ params }: { params: Promise<{ id:
     where: { id },
     select: { isDeleted: true, createdById: true, assignees: { select: { userId: true } } },
   });
-  if (!preCheck || preCheck.isDeleted) notFound();
+  if (!preCheck || (preCheck.isDeleted && !isAdmin(user))) notFound();
 
   const preAssigneeIds = preCheck.assignees.map((a) => a.userId);
   if (!canViewTask(user, { createdById: preCheck.createdById, assigneeUserIds: preAssigneeIds })) forbidden();
 
-  if (preAssigneeIds.includes(user.id)) {
+  if (!preCheck.isDeleted && preAssigneeIds.includes(user.id)) {
     await ensureTaskOpened(id, user.id);
   }
 
@@ -62,10 +66,18 @@ export default async function TaskDetailPage({ params }: { params: Promise<{ id:
 
   const myAssignee = task.assignees.find((a) => a.userId === user.id);
   const isOwnerOrAdmin = canManageTaskAsOwner(user, task);
-  const canCancel = isOwnerOrAdmin && task.status !== "CANCELLED";
+  const canCancel = isOwnerOrAdmin && task.status !== "CANCELLED" && !task.isDeleted;
+  const canEdit = canCancel;
 
   return (
     <div className="max-w-3xl space-y-6">
+      {task.isDeleted && (
+        <div className="flex items-center justify-between rounded-md border border-red-300 bg-red-50 px-4 py-3 text-sm text-red-800">
+          <span>Bu topshiriq o&apos;chirilgan (faqat administrator ko&apos;radi).</span>
+          <RestoreTaskButton taskId={task.id} label />
+        </div>
+      )}
+
       <div>
         <div className="text-sm text-muted-foreground font-mono">T-{String(task.number).padStart(6, "0")}</div>
         <h1 className="text-2xl font-semibold">{task.title}</h1>
@@ -75,9 +87,18 @@ export default async function TaskDetailPage({ params }: { params: Promise<{ id:
         <Badge variant="outline">{PRIORITY_LABELS[task.priority]}</Badge>
         <Badge variant="secondary">{STATUS_LABELS[task.status]}</Badge>
         <Badge className={cn("border", DEADLINE_BADGE_CLASSES[state])}>{getDeadlineLabel(deadlineTask, now)}</Badge>
-        {canCancel && (
-          <div className="ml-auto">
-            <CancelTaskButton taskId={task.id} />
+        {(canEdit || isAdmin(user)) && (
+          <div className="ml-auto flex items-center gap-2">
+            {canEdit && (
+              <Button asChild variant="outline" size="sm">
+                <Link href={`/tasks/${task.id}/edit`}>
+                  <Pencil className="size-4" />
+                  Tahrirlash
+                </Link>
+              </Button>
+            )}
+            {canCancel && <CancelTaskButton taskId={task.id} />}
+            {isAdmin(user) && !task.isDeleted && <DeleteTaskButton taskId={task.id} />}
           </div>
         )}
       </div>
@@ -124,7 +145,7 @@ export default async function TaskDetailPage({ params }: { params: Promise<{ id:
               </span>
               <div className="flex items-center gap-2">
                 <Badge variant="secondary">{STATUS_LABELS[a.status]}</Badge>
-                {isOwnerOrAdmin && a.status === "SUBMITTED" && (
+                {isOwnerOrAdmin && !task.isDeleted && a.status === "SUBMITTED" && (
                   <>
                     <AcceptButton taskId={task.id} assigneeId={a.id} />
                     <ReturnButton taskId={task.id} assigneeId={a.id} />
@@ -136,7 +157,7 @@ export default async function TaskDetailPage({ params }: { params: Promise<{ id:
         </CardContent>
       </Card>
 
-      {myAssignee && myAssignee.status === "IN_PROGRESS" && <SubmitTaskForm taskId={task.id} />}
+      {!task.isDeleted && myAssignee && myAssignee.status === "IN_PROGRESS" && <SubmitTaskForm taskId={task.id} />}
 
       <Card>
         <CardHeader>
@@ -199,6 +220,9 @@ export default async function TaskDetailPage({ params }: { params: Promise<{ id:
                 <div className="text-xs text-muted-foreground">
                   {h.actor.fullName} · {formatDateTime(h.createdAt)}
                 </div>
+                {historyDetail(h.action, h.oldValue, h.newValue) && (
+                  <p className="text-sm mt-1">{historyDetail(h.action, h.oldValue, h.newValue)}</p>
+                )}
                 {h.reason && <p className="text-sm mt-1">Sabab: {h.reason}</p>}
               </div>
             ))}

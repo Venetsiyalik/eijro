@@ -20,11 +20,13 @@ export function TaskFilters({
   assignees,
   showDepartmentFilter,
   showAssigneeFilter,
+  showDeletedFilter = false,
 }: {
   departments: Option[];
   assignees: Option[];
   showDepartmentFilter: boolean;
   showAssigneeFilter: boolean;
+  showDeletedFilter?: boolean;
 }) {
   const router = useRouter();
   const pathname = usePathname();
@@ -46,10 +48,11 @@ export function TaskFilters({
   const priority = searchParams.get("priority") ?? "__all__";
   const departmentId = searchParams.get("departmentId") ?? "__all__";
   const assigneeId = searchParams.get("assigneeId") ?? "__all__";
+  const deleted = searchParams.get("deleted") ?? "__all__";
   const dateFrom = searchParams.get("dateFrom") ?? "";
   const dateTo = searchParams.get("dateTo") ?? "";
 
-  const hasFilters = [status, deadlineFilter, priority, departmentId, assigneeId].some((v) => v !== "__all__") || dateFrom || dateTo;
+  const hasFilters = [status, deadlineFilter, priority, departmentId, assigneeId, deleted].some((v) => v !== "__all__") || dateFrom || dateTo;
 
   return (
     <div className="flex flex-wrap items-end gap-2">
@@ -101,6 +104,22 @@ export function TaskFilters({
           </SelectContent>
         </Select>
       </div>
+
+      {showDeletedFilter && (
+        <div className="space-y-1">
+          <label className="text-xs text-muted-foreground">O&apos;chirilganlik</label>
+          <Select value={deleted} onValueChange={(v) => setParam("deleted", v)}>
+            <SelectTrigger className="w-40">
+              <SelectValue />
+            </SelectTrigger>
+            <SelectContent>
+              <SelectItem value="__all__">Barchasi</SelectItem>
+              <SelectItem value="active">Faqat faol</SelectItem>
+              <SelectItem value="deleted">Faqat o&apos;chirilgan</SelectItem>
+            </SelectContent>
+          </Select>
+        </div>
+      )}
 
       {showDepartmentFilter && (
         <div className="space-y-1">

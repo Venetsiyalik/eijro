@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { db } from "@/lib/db";
 import { getSessionUser } from "@/lib/current-user";
-import { canViewTask } from "@/lib/permissions";
+import { canViewTask, isAdmin } from "@/lib/permissions";
 import { getStorage } from "@/lib/storage";
 import { sanitizeFileName } from "@/lib/files";
 
@@ -16,6 +16,10 @@ export async function GET(request: NextRequest, { params }: { params: Promise<{ 
     include: { task: { include: { assignees: { select: { userId: true } } } } },
   });
   if (!attachment) return NextResponse.json({ error: "Fayl topilmadi" }, { status: 404 });
+
+  if (attachment.task.isDeleted && !isAdmin(user)) {
+    return NextResponse.json({ error: "Fayl topilmadi" }, { status: 404 });
+  }
 
   const assigneeUserIds = attachment.task.assignees.map((a) => a.userId);
   if (!canViewTask(user, { createdById: attachment.task.createdById, assigneeUserIds })) {

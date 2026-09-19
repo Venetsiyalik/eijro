@@ -9,6 +9,8 @@ const LINKS = [
   { href: "/admin/users", label: "Foydalanuvchilar" },
   { href: "/admin/organizations", label: "Tashkilotlar" },
   { href: "/admin/departments", label: "Bo'limlar" },
+  { href: "/admin/tasks", label: "Topshiriqlar" },
+  { href: "/admin/audit", label: "Audit jurnali" },
 ];
 
 export function AdminNav() {

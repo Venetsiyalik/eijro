@@ -16,6 +16,7 @@ import {
 import { writeAudit } from "@/lib/audit";
 import { notify, notifyMany } from "@/lib/notify";
 import { computeTaskStatus } from "@/lib/task-status";
+import { parseTashkentLocal } from "@/lib/format";
 import { getStorage } from "@/lib/storage";
 import { buildStorageKey, isAllowedFile, MAX_FILE_SIZE } from "@/lib/files";
 
@@ -53,7 +54,7 @@ export async function createTask(_prev: ActionState, formData: FormData): Promis
       title: parsed.data.title,
       description: parsed.data.description,
       priority: parsed.data.priority,
-      deadline: new Date(parsed.data.deadline),
+      deadline: parseTashkentLocal(parsed.data.deadline),
       createdById: actor.id,
       departmentId,
       assignees: {
@@ -122,6 +123,9 @@ export async function submitTask(_prev: ActionState, formData: FormData): Promis
 
   const parsed = submitTaskSchema.safeParse({ comment: formData.get("comment") });
   if (!parsed.success) return { error: parsed.error.issues[0]?.message ?? "Ma'lumotlar noto'g'ri" };
+
+  const activeTask = await db.task.findUnique({ where: { id: taskId }, select: { isDeleted: true } });
+  if (!activeTask || activeTask.isDeleted) return { error: "Topshiriq topilmadi" };
 
   const assignee = await db.taskAssignee.findUnique({ where: { taskId_userId: { taskId, userId: actor.id } } });
   if (!assignee) return { error: "Siz bu topshiriqning ijrochisi emassiz" };
@@ -197,8 +201,8 @@ export async function acceptTask(_prev: ActionState, formData: FormData): Promis
   const parsed = acceptTaskSchema.safeParse({ assigneeId: formData.get("assigneeId") });
   if (!parsed.success) return { error: "Ma'lumotlar noto'g'ri" };
 
-  const task = await db.task.findUnique({ where: { id: taskId }, select: { createdById: true, title: true, deadline: true } });
-  if (!task) return { error: "Topshiriq topilmadi" };
+  const task = await db.task.findUnique({ where: { id: taskId }, select: { createdById: true, title: true, deadline: true, isDeleted: true } });
+  if (!task || task.isDeleted) return { error: "Topshiriq topilmadi" };
   if (!canManageTaskAsOwner(actor, task)) return { error: "Bu amalni bajarish huquqingiz yo'q" };
 
   const assignee = await db.taskAssignee.findUnique({ where: { id: parsed.data.assigneeId } });
@@ -250,8 +254,8 @@ export async function returnTask(_prev: ActionState, formData: FormData): Promis
   });
   if (!parsed.success) return { error: parsed.error.issues[0]?.message ?? "Ma'lumotlar noto'g'ri" };
 
-  const task = await db.task.findUnique({ where: { id: taskId }, select: { createdById: true, title: true } });
-  if (!task) return { error: "Topshiriq topilmadi" };
+  const task = await db.task.findUnique({ where: { id: taskId }, select: { createdById: true, title: true, isDeleted: true } });
+  if (!task || task.isDeleted) return { error: "Topshiriq topilmadi" };
   if (!canManageTaskAsOwner(actor, task)) return { error: "Bu amalni bajarish huquqingiz yo'q" };
 
   const assignee = await db.taskAssignee.findUnique({ where: { id: parsed.data.assigneeId } });
@@ -297,9 +301,9 @@ export async function cancelTask(_prev: ActionState, formData: FormData): Promis
 
   const task = await db.task.findUnique({
     where: { id: taskId },
-    select: { createdById: true, title: true, status: true },
+    select: { createdById: true, title: true, status: true, isDeleted: true },
   });
-  if (!task) return { error: "Topshiriq topilmadi" };
+  if (!task || task.isDeleted) return { error: "Topshiriq topilmadi" };
   if (!canManageTaskAsOwner(actor, task)) return { error: "Bu amalni bajarish huquqingiz yo'q" };
   if (task.status === "CANCELLED") return { error: "Topshiriq allaqachon bekor qilingan" };
 
@@ -343,7 +347,7 @@ export async function addComment(_prev: ActionState, formData: FormData): Promis
     where: { id: taskId },
     include: { assignees: { select: { userId: true } } },
   });
-  if (!task) return { error: "Topshiriq topilmadi" };
+  if (!task || task.isDeleted) return { error: "Topshiriq topilmadi" };
 
   const assigneeUserIds = task.assignees.map((a) => a.userId);
   if (!canViewTask(actor, { createdById: task.createdById, assigneeUserIds })) {

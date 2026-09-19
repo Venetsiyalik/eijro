@@ -20,3 +20,13 @@ export function getTashkentRanges(now: Date = new Date()): { endOfToday: Date; e
     endOfWeek: fromZonedTime(endOfWeek(zoned, { weekStartsOn: 1 }), TZ),
   };
 }
+
+/** <input type="datetime-local"> qiymatini (Toshkent devor vaqti) haqiqiy Date'ga aylantiradi — server zonasidan mustaqil. */
+export function parseTashkentLocal(value: string): Date {
+  return fromZonedTime(value, TZ);
+}
+
+/** Date -> <input type="datetime-local"> qiymati (Toshkent vaqti, daqiqagacha). */
+export function toTashkentInputValue(date: Date): string {
+  return formatInTimeZone(date, TZ, "yyyy-MM-dd'T'HH:mm");
+}
