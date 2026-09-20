@@ -22,10 +22,16 @@ export async function loginAction(_prevState: ActionState, formData: FormData): 
     return { error: GENERIC_LOGIN_ERROR };
   }
 
-  const precheck = await db.user.findUnique({
-    where: { username: parsed.data.username },
-    select: { lockedUntil: true },
-  });
+  let precheck: { lockedUntil: Date | null } | null;
+  try {
+    precheck = await db.user.findUnique({
+      where: { username: parsed.data.username },
+      select: { lockedUntil: true },
+    });
+  } catch (error) {
+    console.error("Login: bazaga ulanib bo'lmadi", error);
+    return { error: "Bazaga ulanib bo'lmadi. Birozdan so'ng qayta urinib ko'ring yoki administratorga murojaat qiling." };
+  }
 
   if (precheck?.lockedUntil && precheck.lockedUntil > new Date()) {
     const minutesLeft = Math.max(1, Math.ceil((precheck.lockedUntil.getTime() - Date.now()) / 60000));
