@@ -39,8 +39,17 @@ export function resolveDirectUrl(env: Env = process.env): { name: string; value:
   return firstFilled(env, DB_DIRECT) ?? firstBySuffix(env, DB_DIRECT);
 }
 
+/**
+ * AUTH_SECRET bo'sh bo'lsa zaxira: secret baza manzilidan hosil qilinadi (Auth.js o'zi HKDF bilan kalit chiqaradi).
+ * Baza manzili ham maxfiy va uni bilgan kishi bazaga to'liq kira oladi — xavfsizlik darajasi pasaymaydi.
+ * Baribir alohida AUTH_SECRET berish tavsiya etiladi (health "derived" deb ko'rsatadi).
+ */
 export function resolveAuthSecret(env: Env = process.env): { name: string; value: string } | null {
-  return firstFilled(env, AUTH_SECRETS) ?? firstBySuffix(env, AUTH_SECRETS);
+  const explicit = firstFilled(env, AUTH_SECRETS) ?? firstBySuffix(env, AUTH_SECRETS);
+  if (explicit) return explicit;
+  const database = resolveDatabaseUrl(env);
+  if (database) return { name: `derived:${database.name}`, value: `ijro-nazorati-auth:${database.value}` };
+  return null;
 }
 
 /** Diagnostika uchun: tegishli o'zgaruvchilarning faqat NOMLARI (qiymatlari emas). */

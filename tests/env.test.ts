@@ -18,6 +18,12 @@ describe("resolveDatabaseUrl", () => {
     expect(resolveDatabaseUrl({ POSTGRES_URL: "a", POSTGRES_PRISMA_URL: POOLED })?.name).toBe("POSTGRES_PRISMA_URL");
   });
 
+  it("Vercel'dagi haqiqiy holat: bo'sh DATABASE_URL + eijro_ prefiksli integratsiya nomlari", () => {
+    const env = { DATABASE_URL: "", DIRECT_URL: "", eijro_DATABASE_URL: POOLED, eijro_DATABASE_URL_UNPOOLED: DIRECT, eijro_POSTGRES_PRISMA_URL: POOLED };
+    expect(resolveDatabaseUrl(env)).toEqual({ name: "eijro_DATABASE_URL", value: POOLED });
+    expect(resolveDirectUrl(env)).toEqual({ name: "eijro_DATABASE_URL_UNPOOLED", value: DIRECT });
+  });
+
   it("prefiksli nomlar (STORAGE_DATABASE_URL)", () => {
     expect(resolveDatabaseUrl({ STORAGE_DATABASE_URL: POOLED })).toEqual({ name: "STORAGE_DATABASE_URL", value: POOLED });
   });
@@ -46,6 +52,15 @@ describe("resolveDirectUrl / resolveAuthSecret", () => {
     expect(resolveAuthSecret({ AUTH_SECRET: "a", NEXTAUTH_SECRET: "b" })?.name).toBe("AUTH_SECRET");
     expect(resolveAuthSecret({ NEXTAUTH_SECRET: "b" })?.name).toBe("NEXTAUTH_SECRET");
     expect(resolveAuthSecret({})).toBeNull();
+  });
+
+  it("AUTH_SECRET bo'sh bo'lsa baza manzilidan barqaror zaxira secret hosil qilinadi", () => {
+    const env = { AUTH_SECRET: "", eijro_DATABASE_URL: POOLED };
+    const a = resolveAuthSecret(env);
+    expect(a?.name).toBe("derived:eijro_DATABASE_URL");
+    expect(a?.value).toContain(POOLED);
+    expect(resolveAuthSecret(env)).toEqual(a);
+    expect(resolveAuthSecret({ ...env, AUTH_SECRET: "explicit" })?.name).toBe("AUTH_SECRET");
   });
 });
 
