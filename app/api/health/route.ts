@@ -1,22 +1,28 @@
 import { NextResponse } from "next/server";
 import { db } from "@/lib/db";
+import { relevantEnvNames, resolveAuthSecret, resolveDatabaseUrl, resolveDirectUrl } from "@/lib/env";
 
 export const dynamic = "force-dynamic";
 
-const filled = (name: string) => Boolean(process.env[name]?.trim());
-
-/** Deploy holatini tekshirish uchun: qiymatlar ko'rsatilmaydi, faqat bor/yo'qligi va baza ulanishi. */
+/** Deploy holatini tekshirish: qiymatlar ko'rsatilmaydi — faqat nomlar, topilgan-topilmagani va baza ulanishi. */
 export async function GET() {
-  const databaseUrl = process.env.DATABASE_URL?.trim() ?? "";
+  const databaseUrl = resolveDatabaseUrl();
+  const directUrl = resolveDirectUrl();
+  const authSecret = resolveAuthSecret();
 
-  const env = {
-    DATABASE_URL: filled("DATABASE_URL"),
-    DATABASE_URL_looksValid: /^postgres(ql)?:\/\//.test(databaseUrl),
-    DATABASE_URL_usesPooler: databaseUrl.includes("-pooler"),
-    DIRECT_URL: filled("DIRECT_URL"),
-    AUTH_SECRET: filled("AUTH_SECRET"),
-    STORAGE_DRIVER: process.env.STORAGE_DRIVER?.trim() || null,
-    BLOB_READ_WRITE_TOKEN: filled("BLOB_READ_WRITE_TOKEN"),
+  const config = {
+    database: databaseUrl
+      ? {
+          found: true,
+          from: databaseUrl.name,
+          looksValid: /^postgres(ql)?:\/\//.test(databaseUrl.value),
+          usesPooler: databaseUrl.value.includes("-pooler"),
+        }
+      : { found: false },
+    directUrl: directUrl ? { found: true, from: directUrl.name } : { found: false },
+    authSecret: authSecret ? { found: true, from: authSecret.name, longEnough: authSecret.value.length >= 32 } : { found: false },
+    storageDriver: process.env.STORAGE_DRIVER?.trim() || "vercel-blob (standart)",
+    blobToken: Boolean(process.env.BLOB_READ_WRITE_TOKEN?.trim()),
   };
 
   let database: { ok: boolean; users?: number; error?: string };
@@ -28,6 +34,18 @@ export async function GET() {
     database = { ok: false, error: code ? `${name} (${code})` : name };
   }
 
-  const ok = env.DATABASE_URL && env.DIRECT_URL && env.AUTH_SECRET && database.ok;
-  return NextResponse.json({ ok, env, database }, { status: ok ? 200 : 503 });
+  const ok = Boolean(databaseUrl && authSecret && database.ok);
+  return NextResponse.json(
+    {
+      ok,
+      deployment: {
+        env: process.env.VERCEL_ENV ?? null,
+        commit: process.env.VERCEL_GIT_COMMIT_SHA?.slice(0, 7) ?? null,
+      },
+      config,
+      database,
+      envNamesPresent: relevantEnvNames(),
+    },
+    { status: ok ? 200 : 503, headers: { "Cache-Control": "no-store" } }
+  );
 }

@@ -1,8 +1,11 @@
 import { PrismaClient } from "@prisma/client";
 import { withRetry } from "@/lib/db-retry";
+import { resolveDatabaseUrl } from "@/lib/env";
 
 function createClient() {
+  const url = resolveDatabaseUrl()?.value;
   return new PrismaClient({
+    ...(url ? { datasourceUrl: url } : {}),
     log: process.env.NODE_ENV === "development" ? ["error", "warn"] : ["error"],
   }).$extends({
     query: {
