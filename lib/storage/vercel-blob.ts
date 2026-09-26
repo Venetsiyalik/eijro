@@ -1,4 +1,4 @@
-import { put, get, del } from "@vercel/blob";
+import { put, get, del, list } from "@vercel/blob";
 import { resolveBlobToken } from "@/lib/env";
 import type { StorageAdapter } from "./types";
 
@@ -27,5 +27,10 @@ export const vercelBlobStorage: StorageAdapter = {
 
   async delete(key) {
     await del(key, { token: token() });
+  },
+
+  /** Token yoki OIDC (BLOB_STORE_ID) — qaysi biri bo'lsa ham, SDK o'zi tanlaydi. */
+  async check() {
+    await list({ limit: 1, token: token() });
   },
 };

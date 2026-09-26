@@ -1,5 +1,6 @@
 import { NextResponse } from "next/server";
 import { db } from "@/lib/db";
+import { getStorage } from "@/lib/storage";
 import { relevantEnvNames, resolveAuthSecret, resolveBlobToken, resolveDatabaseUrl, resolveDirectUrl } from "@/lib/env";
 
 export const dynamic = "force-dynamic";
@@ -36,6 +37,15 @@ export async function GET() {
     database = { ok: false, error: code ? `${name} (${code})` : name };
   }
 
+  // Fayl xotirasi: faqat o'qish so'rovi (hech narsa yozilmaydi). Xabar matnida maxfiy qiymat bo'lmaydi.
+  let storage: { ok: boolean; error?: string };
+  try {
+    await getStorage().check();
+    storage = { ok: true };
+  } catch (error) {
+    storage = { ok: false, error: error instanceof Error ? `${error.name}: ${error.message}`.slice(0, 300) : "UnknownError" };
+  }
+
   const ok = Boolean(databaseUrl && authSecret && database.ok);
   return NextResponse.json(
     {
@@ -46,6 +56,7 @@ export async function GET() {
       },
       config,
       database,
+      storage,
       envNamesPresent: relevantEnvNames(),
     },
     { status: ok ? 200 : 503, headers: { "Cache-Control": "no-store" } }

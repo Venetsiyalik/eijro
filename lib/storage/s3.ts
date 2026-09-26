@@ -1,4 +1,4 @@
-import { S3Client, PutObjectCommand, GetObjectCommand, DeleteObjectCommand } from "@aws-sdk/client-s3";
+import { S3Client, PutObjectCommand, GetObjectCommand, DeleteObjectCommand, HeadBucketCommand } from "@aws-sdk/client-s3";
 import type { StorageAdapter } from "./types";
 
 /** MinIO / S3'ga xos kod — faqat shu faylda (§13: o'z serverga ko'chirishda shu fayl ishlatiladi). */
@@ -34,5 +34,9 @@ export const s3Storage: StorageAdapter = {
   async delete(key) {
     const client = getClient();
     await client.send(new DeleteObjectCommand({ Bucket: BUCKET, Key: key }));
+  },
+
+  async check() {
+    await getClient().send(new HeadBucketCommand({ Bucket: BUCKET }));
   },
 };
