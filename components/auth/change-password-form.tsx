@@ -13,7 +13,7 @@ export function ChangePasswordForm({ forced }: { forced: boolean }) {
   const [state, formAction, isPending] = useActionState(changePasswordAction, initialState);
 
   return (
-    <Card>
+    <Card className="shadow-lg">
       <CardHeader>
         <CardTitle>Parolni almashtirish</CardTitle>
         <CardDescription>

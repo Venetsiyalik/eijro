@@ -12,7 +12,6 @@ import {
 } from "@/lib/metrics";
 import { describeHistory } from "@/lib/history-labels";
 import { formatDateTime } from "@/lib/format";
-import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { StatCard } from "@/components/dashboard/stat-card";
 import { DelayList, DisciplineTable } from "@/components/dashboard/discipline-table";
@@ -44,12 +43,7 @@ export async function ManagementDashboard({ user }: { user: CurrentUser }) {
 
   return (
     <div className="space-y-6">
-      <div className="flex items-center justify-between">
-        <h1 className="text-2xl font-semibold">Bosh sahifa</h1>
-        <Button asChild variant="outline" size="sm">
-          <Link href="/reports">Hisobotlar</Link>
-        </Button>
-      </div>
+      <h1 className="text-2xl font-semibold">Bosh sahifa</h1>
 
       <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
         <StatCard label="Jami" value={summary.assigned} />

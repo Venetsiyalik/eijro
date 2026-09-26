@@ -1,15 +1,16 @@
+import { cache } from "react";
 import { redirect } from "next/navigation";
 import { auth } from "@/lib/auth";
 import { db } from "@/lib/db";
 
 /**
- * JWT'dagi ma'lumot eskirgan bo'lishi mumkin (masalan isActive=false qilingandan
- * keyin), shuning uchun har so'rovda bazadan qayta tekshiramiz (§8.1: "isActive=false
- * bo'lsa sessiya darhol bekor"). Route Handler'lar uchun — redirect qilmaydi, null qaytaradi.
+ * JWT'dagi ma'lumot eskirgan bo'lishi mumkin (masalan isActive=false qilingandan keyin), shuning uchun
+ * har so'rovda bazadan qayta tekshiramiz (§8.1). cache(): bitta so'rov ichida (layout + sahifa + komponentlar)
+ * sessiya va baza tekshiruvi faqat bir marta bajariladi.
  */
-export async function getSessionUser() {
+const loadSession = cache(async () => {
   const session = await auth();
-  if (!session?.user) return null;
+  if (!session?.user) return { hasSession: false as const, user: null };
 
   const user = await db.user.findUnique({
     where: { id: session.user.id },
@@ -26,17 +27,18 @@ export async function getSessionUser() {
     },
   });
 
-  if (!user || !user.isActive) return null;
-  return user;
+  return { hasSession: true as const, user: user && user.isActive ? user : null };
+});
+
+/** Route Handler'lar uchun — redirect qilmaydi, null qaytaradi. */
+export async function getSessionUser() {
+  return (await loadSession()).user;
 }
 
 /** Sahifa/layout Server Component'lari uchun — sessiya yaroqsiz bo'lsa /login'ga yo'naltiradi. */
 export async function requireUser() {
-  const session = await auth();
-  if (!session?.user) redirect("/login");
-
-  const user = await getSessionUser();
+  const { hasSession, user } = await loadSession();
+  if (!hasSession) redirect("/login");
   if (!user) redirect("/api/auth/invalidate");
-
   return user;
 }

@@ -13,10 +13,10 @@ export function LoginForm({ passwordChanged }: { passwordChanged?: boolean }) {
   const [state, formAction, isPending] = useActionState(loginAction, initialState);
 
   return (
-    <Card>
+    <Card className="shadow-lg">
       <CardHeader>
-        <CardTitle>Ijro nazorati</CardTitle>
-        <CardDescription>Tizimga kirish uchun login va parolingizni kiriting</CardDescription>
+        <CardTitle>Tizimga kirish</CardTitle>
+        <CardDescription>Login va parolingizni kiriting. Hisobni administrator beradi.</CardDescription>
       </CardHeader>
       <CardContent>
         {passwordChanged && (
