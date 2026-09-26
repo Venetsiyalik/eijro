@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { relevantEnvNames, resolveAuthSecret, resolveDatabaseUrl, resolveDirectUrl } from "@/lib/env";
+import { relevantEnvNames, resolveAuthSecret, resolveBlobToken, resolveDatabaseUrl, resolveDirectUrl } from "@/lib/env";
 
 const POOLED = "postgresql://u:p@ep-x-pooler.neon.tech/db";
 const DIRECT = "postgresql://u:p@ep-x.neon.tech/db";
@@ -68,5 +68,20 @@ describe("relevantEnvNames", () => {
   it("faqat tegishli nomlar, qiymatsiz", () => {
     const names = relevantEnvNames({ DATABASE_URL: "x", AUTH_SECRET: "y", HOME: "/root", PATH: "/bin", PGHOST: "h" });
     expect(names).toEqual(["AUTH_SECRET", "DATABASE_URL", "PGHOST"]);
+  });
+});
+
+describe("resolveBlobToken", () => {
+  it("oddiy nomni topadi", () => {
+    expect(resolveBlobToken({ BLOB_READ_WRITE_TOKEN: "vercel_blob_rw_a" })?.name).toBe("BLOB_READ_WRITE_TOKEN");
+  });
+  it("bo'sh oddiy nom bo'lsa prefiksli nomni oladi", () => {
+    expect(resolveBlobToken({ BLOB_READ_WRITE_TOKEN: "", eijro_BLOB_READ_WRITE_TOKEN: "vercel_blob_rw_b" })).toEqual({
+      name: "eijro_BLOB_READ_WRITE_TOKEN",
+      value: "vercel_blob_rw_b",
+    });
+  });
+  it("hech narsa bo'lmasa null", () => {
+    expect(resolveBlobToken({ BLOB_READ_WRITE_TOKEN: " " })).toBeNull();
   });
 });

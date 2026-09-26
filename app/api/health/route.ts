@@ -1,6 +1,6 @@
 import { NextResponse } from "next/server";
 import { db } from "@/lib/db";
-import { relevantEnvNames, resolveAuthSecret, resolveDatabaseUrl, resolveDirectUrl } from "@/lib/env";
+import { relevantEnvNames, resolveAuthSecret, resolveBlobToken, resolveDatabaseUrl, resolveDirectUrl } from "@/lib/env";
 
 export const dynamic = "force-dynamic";
 
@@ -9,6 +9,7 @@ export async function GET() {
   const databaseUrl = resolveDatabaseUrl();
   const directUrl = resolveDirectUrl();
   const authSecret = resolveAuthSecret();
+  const blobToken = resolveBlobToken();
 
   const config = {
     database: databaseUrl
@@ -22,7 +23,8 @@ export async function GET() {
     directUrl: directUrl ? { found: true, from: directUrl.name } : { found: false },
     authSecret: authSecret ? { found: true, from: authSecret.name, longEnough: authSecret.value.length >= 32 } : { found: false },
     storageDriver: process.env.STORAGE_DRIVER?.trim() || "vercel-blob (standart)",
-    blobToken: Boolean(process.env.BLOB_READ_WRITE_TOKEN?.trim()),
+    blobToken: blobToken ? { found: true, from: blobToken.name } : { found: false },
+    blobStoreId: Boolean(process.env.BLOB_STORE_ID?.trim()),
   };
 
   let database: { ok: boolean; users?: number; error?: string };

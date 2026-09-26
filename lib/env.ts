@@ -52,6 +52,11 @@ export function resolveAuthSecret(env: Env = process.env): { name: string; value
   return null;
 }
 
+/** Vercel Blob tokeni: integratsiya prefiks bilan qo'shsa ham (masalan eijro_BLOB_READ_WRITE_TOKEN) topiladi. */
+export function resolveBlobToken(env: Env = process.env): { name: string; value: string } | null {
+  return firstFilled(env, ["BLOB_READ_WRITE_TOKEN"]) ?? firstBySuffix(env, ["BLOB_READ_WRITE_TOKEN"]);
+}
+
 /** Diagnostika uchun: tegishli o'zgaruvchilarning faqat NOMLARI (qiymatlari emas). */
 export function relevantEnvNames(env: Env = process.env): string[] {
   const pattern = /(DATABASE|POSTGRES|^PG|NEON|AUTH|SECRET|BLOB|STORAGE|DIRECT)/i;
